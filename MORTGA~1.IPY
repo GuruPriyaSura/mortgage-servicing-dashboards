@@ -1,0 +1,81 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python",
+   "version": "3.10.0"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# \ud83d\udcca Mortgage Servicing Dashboards\n**Author:** Gurupriya R | Freddie Mac Analytics\n\nThree Power BI-equivalent dashboards for weekly mortgage servicing review \u2014 saved 8 analyst-hours/week."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport warnings; warnings.filterwarnings('ignore')\nplt.style.use('seaborn-v0_8-whitegrid')\ndf = pd.read_csv('data/loan_portfolio.csv')\nprint(f'Portfolio: {len(df):,} loans | Statuses: {df[\"loan_status\"].nunique()}')\ndf.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Dashboard 1 \u2014 Loan Aging & Delinquency Pipeline"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, axes = plt.subplots(1, 2, figsize=(14, 5))\nstatus = df['loan_status'].value_counts()\naxes[0].bar(status.index, status.values, color=['#5ab0b0','#e8924a','#f5b27a','#e07060','#c4712e','#3a8c8c'], edgecolor='white')\naxes[0].set_title('Loan Status Distribution \u2014 Aging Pipeline')\naxes[0].tick_params(axis='x', rotation=20)\nstate_dq = df[df['loan_status'].isin(['30-Day DQ','60-Day DQ','90+ DQ','Foreclosure'])].groupby('state').size() / df.groupby('state').size()\nstate_dq.dropna().sort_values().plot(kind='barh', ax=axes[1], color='#e07060')\naxes[1].set_title('Delinquency Rate by State')\nplt.tight_layout(); plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Dashboard 2 \u2014 Credit Score & Risk Tiers"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, axes = plt.subplots(1, 2, figsize=(14, 5))\ncredit_bins = pd.cut(df['credit_score'], bins=[300,580,620,680,740,850],\n    labels=['<580','580\u2013619','620\u2013679','680\u2013739','740+'])\ncredit_dist = credit_bins.value_counts().sort_index()\naxes[0].bar(credit_dist.index, credit_dist.values,\n    color=['#c0392b','#e07060','#e8924a','#5ab0b0','#3a8c8c'], edgecolor='white')\naxes[0].set_title('Credit Score Distribution (Risk Tiers)')\nltv_bins = pd.cut(df['ltv_ratio'], bins=[0,70,80,90,100,110], labels=['\u226470','71-80','81-90','91-100','>100'])\nltv_dist = ltv_bins.value_counts().sort_index()\naxes[1].pie(ltv_dist.values, labels=ltv_dist.index, autopct='%1.0f%%',\n    colors=['#3a8c8c','#5ab0b0','#e8924a','#e07060','#c4712e'])\naxes[1].set_title('LTV Ratio Buckets')\nplt.tight_layout(); plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Dashboard 3 \u2014 Foreclosure Risk Map"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig, ax = plt.subplots(figsize=(10, 6))\nrisk_map = df['loan_status'].map({'Current':0,'Paid Off':0,'30-Day DQ':1,'60-Day DQ':2,'90+ DQ':3,'Foreclosure':4})\nsc = ax.scatter(df['credit_score'], df['ltv_ratio'], c=risk_map, cmap='RdYlGn_r', alpha=0.5, s=20)\nax.axhline(90, color='red', linestyle='--', alpha=0.5, label='High LTV (90%)')\nax.axvline(620, color='orange', linestyle='--', alpha=0.5, label='Fair Credit (620)')\nax.set(xlabel='Credit Score', ylabel='LTV Ratio (%)', title='Foreclosure Risk Map (green=current, red=foreclosure)')\nax.legend(); plt.colorbar(sc, ax=ax, label='Risk Level')\nplt.show()"
+   ]
+  }
+ ]
+}
